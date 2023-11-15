@@ -1,11 +1,31 @@
 package main
 
-templ hello(name string){
-    <div>hi Colin</div>
+css buttonClass() {
+	background-color: #ff0000;
 }
 
-templ forLoopTest(rowsPulledOut []item){
-    for _, item := range rowsPulledOut {
-        <div>{ item.thingType }{ item.count }</div>
-    }
+templ forLoopTest(rowsPulledOut []item) {
+	<div id="whole_thing">
+		for _, item := range rowsPulledOut {
+			<div>{ item.thingType }{ item.count }</div>
+		}
+		<form hx-post="/new-item" hx-swap="afterbegin">
+			<input name="type"/>
+			<input name="count"/>
+			<button type="submit">SUBMIT</button>
+		</form>
+	</div>
+}
+
+templ indexPage(rowsPulledOut []item) {
+	<html>
+		<head>
+			<meta charset="UTF-8"/>
+			<script src="/assets/js/htmx.min.js"></script>
+		</head>
+		<body>
+			@forLoopTest(rowsPulledOut)
+			<button hx-delete="/" hx-target="#whole_thing">DELETE</button>
+		</body>
+	</html>
 }

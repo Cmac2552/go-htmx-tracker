@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	_ "modernc.org/sqlite"
 )
 
@@ -80,23 +81,26 @@ func (c *CustomContext) clearDB() {
 func hand1(c echo.Context) error {
 	cc := c.(*CustomContext)
 	items := cc.pullFromDB()
-	return forLoopTest(items).Render(context.Background(), c.Response().Writer)
+	return indexPage(items).Render(context.Background(), c.Response().Writer)
 }
 
 func hand2(c echo.Context) error {
 	cc := c.(*CustomContext)
 	cc.putIntoDB(cc.FormValue("type"), cc.FormValue("count"))
-	return cc.HTML(http.StatusOK, "<h1> YOU GOOD DAWG </h1>")
+	return cc.HTML(http.StatusOK, "<div>"+cc.FormValue("type")+cc.FormValue("count")+"</div>")
 }
 
 func hand3(c echo.Context) error {
 	cc := c.(*CustomContext)
 	cc.clearDB()
-	return cc.HTML(http.StatusOK, "<h1> YOU NUKED IT </h1>")
+	return forLoopTest(make([]item, 0)).Render(context.Background(), c.Response().Writer)
 }
 
 func main() {
 	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Static("/assets", "assets")
 
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
