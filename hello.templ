@@ -1,0 +1,11 @@
+package main
+
+templ hello(name string){
+    <div>hi Colin</div>
+}
+
+templ forLoopTest(rowsPulledOut []item){
+    for _, item := range rowsPulledOut {
+        <div>{ item.thingType }{ item.count }</div>
+    }
+}
