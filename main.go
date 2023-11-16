@@ -86,14 +86,22 @@ func hand1(c echo.Context) error {
 
 func hand2(c echo.Context) error {
 	cc := c.(*CustomContext)
+	fmt.Println(cc.FormValue("date"))
 	cc.putIntoDB(cc.FormValue("type"), cc.FormValue("count"))
-	return cc.HTML(http.StatusOK, "<div>"+cc.FormValue("type")+cc.FormValue("count")+"</div>")
+	items := cc.pullFromDB()
+	return forLoopTest(items).Render(context.Background(), c.Response().Writer)
 }
 
 func hand3(c echo.Context) error {
 	cc := c.(*CustomContext)
 	cc.clearDB()
 	return forLoopTest(make([]item, 0)).Render(context.Background(), c.Response().Writer)
+}
+
+func hand4(c echo.Context) error {
+	// cc := c.(*CustomContext)
+	fmt.Println("here")
+	return c.HTML(http.StatusOK, "")
 }
 
 func main() {
@@ -110,6 +118,7 @@ func main() {
 	})
 
 	e.GET("/", hand1)
+	e.GET("/date", hand4)
 	e.POST("/new-item", hand2)
 	e.DELETE("/", hand3)
 	e.Logger.Fatal(e.Start(":1323"))
