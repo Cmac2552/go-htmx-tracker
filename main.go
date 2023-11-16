@@ -118,7 +118,7 @@ func main() {
 	})
 
 	e.GET("/", hand1)
-	e.GET("/date", hand4)
+	e.GET("/get-items", hand4)
 	e.POST("/new-item", hand2)
 	e.DELETE("/", hand3)
 	e.Logger.Fatal(e.Start(":1323"))

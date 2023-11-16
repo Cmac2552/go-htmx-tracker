@@ -9,7 +9,7 @@ templ forLoopTest(rowsPulledOut []item) {
 		for _, item := range rowsPulledOut {
 			<div>{ item.thingType }{ item.count }</div>
 		}
-		<form hx-get="/date">
+		<form hx-get="/get-items">
 			<input type="date" name="date"/>
 			<button type="submit">SUBMIT</button>
 		</form>
