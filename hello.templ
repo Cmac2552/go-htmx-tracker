@@ -4,32 +4,111 @@ css buttonClass() {
 	background-color: #ff0000;
 }
 
+css box() {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 10rem;
+	height: 10rem;
+	background-color: #f0f0f0;
+	border-radius: 1rem;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 5);
+	margin-bottom: 1rem;
+	margin-right: 5rem;
+}
+
+css wholeThing() {
+	display: flex;
+	align-items: center;
+	justify-content: start;
+	flex-wrap: wrap;
+}
+
+css header() {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+}
+
+css dateForm() {
+	margin-block-end: 0;
+}
+
+css dateButton() {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 10px 15px;
+	background-color: #19323C;
+	color: #fff; 
+    border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	transition: background-color 0.3s ease;
+}
+
+css submitButton() {
+	padding: 9px 15px;
+	background-color: #A93f55;
+	color: #fff; 
+    border: none;
+	border-radius: 5px;
+	cursor: pointer;
+}
+
+css input() {
+	height: 2rem;
+	border: 1px solid #ddd;
+	border-radius: 5px;
+	font-size: 16px;
+	outline: none;
+	margin-right: 1rem;
+}
+
+css infoForm() {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
 templ forLoopTest(rowsPulledOut []item) {
 	<div id="whole_thing">
-		for _, item := range rowsPulledOut {
-			<div>{ item.thingType }{ item.count }</div>
-		}
-		<form hx-get="/get-items">
-			<input type="date" name="date"/>
-			<button type="submit">SUBMIT</button>
+		<form hx-post="/new-item" hx-target="#whole_thing" hx-include="[name=&#39;date&#39;]" class={ infoForm() }>
+			<input name="type" class={ input() }/>
+			<input type="number" name="count" class={ input() }/>
+			<button type="submit" class={ submitButton() }>SUBMIT</button>
 		</form>
-		<form hx-post="/new-item" hx-target="#whole_thing" hx-include="[name=&#39;date&#39;]">
-			<input name="type"/>
-			<input name="count"/>
-			<button type="submit">SUBMIT</button>
-		</form>
+		<div class={ wholeThing() }>
+			for _, item := range rowsPulledOut {
+				<div class={ box() }>{ item.thingType }{ item.count }</div>
+			}
+		</div>
 	</div>
 }
 
-templ indexPage(rowsPulledOut []item) {
+templ indexPage(rowsPulledOut []item, day string) {
 	<html>
 		<head>
 			<meta charset="UTF-8"/>
+			<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons"/>
 			<script src="/assets/js/htmx.min.js"></script>
 		</head>
 		<body>
+			<div class={ header() }>
+				<h1>{ day } </h1>
+				<button class={ dateButton() } hx-trigger="click" hx-get="/date-picker" hx-swap="outerHTML"><i class="material-icons">calendar_month</i> </button>
+			</div>
 			@forLoopTest(rowsPulledOut)
 			<button hx-delete="/" hx-target="#whole_thing">DELETE</button>
 		</body>
 	</html>
+}
+
+templ datePicker() {
+	<form hx-get="/get-items" class={ dateForm() }>
+		<input type="date" name="date"/>
+		<button type="submit">SUBMIT</button>
+	</form>
 }
