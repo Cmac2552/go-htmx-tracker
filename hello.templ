@@ -25,7 +25,7 @@ css wholeThing() {
 	flex-wrap: wrap;
 }
 
-css header() {
+css headerStyle() {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -46,7 +46,7 @@ css dateButton() {
     border: none;
 	border-radius: 5px;
 	cursor: pointer;
-	transition: background-color 0.3s ease;
+	margin-bottom: 1.5rem;
 }
 
 css submitButton() {
@@ -73,6 +73,14 @@ css infoForm() {
 	justify-content: center;
 }
 
+css dayClass() {
+	margin-bottom: 0;
+}
+
+css dateInput() {
+	margin-bottom: 2.95rem;
+}
+
 templ forLoopTest(rowsPulledOut []item) {
 	<div id="whole_thing">
 		<form hx-post="/new-item" hx-target="#whole_thing" hx-include="[name=&#39;date&#39;]" class={ infoForm() }>
@@ -82,7 +90,10 @@ templ forLoopTest(rowsPulledOut []item) {
 		</form>
 		<div class={ wholeThing() }>
 			for _, item := range rowsPulledOut {
-				<div class={ box() }>{ item.thingType }{ item.count }</div>
+				<div class={ box() }>
+					<div>{ item.thingType }</div>
+					<div>{ item.count }</div>
+				</div>
 			}
 		</div>
 	</div>
@@ -96,19 +107,25 @@ templ indexPage(rowsPulledOut []item, day string) {
 			<script src="/assets/js/htmx.min.js"></script>
 		</head>
 		<body>
-			<div class={ header() }>
-				<h1>{ day } </h1>
-				<button class={ dateButton() } hx-trigger="click" hx-get="/date-picker" hx-swap="outerHTML"><i class="material-icons">calendar_month</i> </button>
+			<div id="page">
+				@header(day)
+				@forLoopTest(rowsPulledOut)
+				<button hx-delete="/" hx-target="#whole_thing">DELETE</button>
 			</div>
-			@forLoopTest(rowsPulledOut)
-			<button hx-delete="/" hx-target="#whole_thing">DELETE</button>
 		</body>
 	</html>
 }
 
 templ datePicker() {
-	<form hx-get="/get-items" class={ dateForm() }>
-		<input type="date" name="date"/>
+	<form hx-get="/" class={ dateForm() } hx-target="#page" hx-swap="outerHTML">
+		<input class={ dateInput() } type="date" name="date"/>
 		<button type="submit">SUBMIT</button>
 	</form>
+}
+
+templ header(day string) {
+	<div class={ headerStyle() }>
+		<h1 class={ dayClass() }>{ day } </h1>
+		<button class={ dateButton() } hx-trigger="click" hx-get="/date-picker" hx-swap="outerHTML"><i class="material-icons">calendar_month</i> </button>
+	</div>
 }

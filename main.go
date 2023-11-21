@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net/http"
 	"strconv"
 	"sync"
 	"time"
@@ -14,21 +13,36 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var (
-	lock = sync.Mutex{}
-)
-
 type item struct {
 	id        int
 	thingType string
 	count     string
+	date      string
 }
 
-type CustomContext struct {
-	echo.Context
+type CurrentDate struct {
+	currentDate string
+	lock        sync.Mutex
 }
 
-func (c *CustomContext) putIntoDB(thingType string, count string) {
+var (
+	currDate = &CurrentDate{}
+)
+
+func (currDate *CurrentDate) setDate(date string) {
+	currDate.lock.Lock()
+	currDate.currentDate = date
+	currDate.lock.Unlock()
+
+}
+func (currDate *CurrentDate) getDate() string {
+	currDate.lock.Lock()
+	defer currDate.lock.Unlock()
+	return currDate.currentDate
+
+}
+
+func putIntoDB(thingType string, count string, date string) {
 	db, err := sql.Open("sqlite", "./DB1.db")
 	if err != nil {
 		fmt.Println(err)
@@ -40,17 +54,17 @@ func (c *CustomContext) putIntoDB(thingType string, count string) {
 
 	count_int, err := strconv.Atoi(count)
 
-	db.Exec("INSERT INTO table1 (type, count) VALUES (?, ?)", thingType, count_int)
+	db.Exec("INSERT INTO table1 (type, count, date) VALUES (?, ?, ?)", thingType, count_int, date)
 }
 
-func (c *CustomContext) pullFromDB() []item {
+func pullFromDB(date string) []item {
 	db, err := sql.Open("sqlite", "./DB1.db")
 	if err != nil {
 		fmt.Println(err)
 	}
 	defer db.Close()
 
-	result, err := db.Query("SELECT * FROM table1")
+	result, err := db.Query("SELECT * FROM table1 WHERE date = ?", date)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -58,7 +72,7 @@ func (c *CustomContext) pullFromDB() []item {
 	var thingContainer []item
 	for result.Next() {
 		var thing item
-		err := result.Scan(&thing.id, &thing.thingType, &thing.count)
+		err := result.Scan(&thing.id, &thing.thingType, &thing.count, &thing.date)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -68,7 +82,7 @@ func (c *CustomContext) pullFromDB() []item {
 	return thingContainer
 }
 
-func (c *CustomContext) clearDB() {
+func clearDB() {
 	db, err := sql.Open("sqlite", "./DB1.db")
 	if err != nil {
 		fmt.Println(err)
@@ -79,7 +93,7 @@ func (c *CustomContext) clearDB() {
 
 }
 
-func (c *CustomContext) isTheDayRight() time.Time {
+func isTheDayRight() time.Time {
 	db, err := sql.Open("sqlite", "./DB1.db")
 	if err != nil {
 		fmt.Println(err)
@@ -116,30 +130,35 @@ func (c *CustomContext) isTheDayRight() time.Time {
 
 }
 
+func dateHelper(dateToFormat string) string {
+	convertedTime, err := time.Parse("2006-01-02", dateToFormat)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return convertedTime.Format("January 2 2006")
+}
+
 func hand1(c echo.Context) error {
-	cc := c.(*CustomContext)
-	items := cc.pullFromDB()
-	day := cc.isTheDayRight()
-	return indexPage(items, day.Format("January 2 2006")).Render(context.Background(), c.Response().Writer)
+
+	if c.QueryParam("date") != "" {
+		currDate.setDate(c.QueryParam("date"))
+	}
+	items := pullFromDB(currDate.getDate())
+	return indexPage(items, dateHelper(currDate.getDate())).Render(context.Background(), c.Response().Writer)
 }
 
 func hand2(c echo.Context) error {
-	cc := c.(*CustomContext)
-	cc.putIntoDB(cc.FormValue("type"), cc.FormValue("count"))
-	items := cc.pullFromDB()
+
+	putIntoDB(c.FormValue("type"), c.FormValue("count"), currDate.getDate())
+	items := pullFromDB(currDate.getDate())
 	return forLoopTest(items).Render(context.Background(), c.Response().Writer)
 }
 
 func hand3(c echo.Context) error {
-	cc := c.(*CustomContext)
-	cc.clearDB()
-	return forLoopTest(make([]item, 0)).Render(context.Background(), c.Response().Writer)
-}
 
-func hand4(c echo.Context) error {
-	// cc := c.(*CustomContext)
-	fmt.Println("here")
-	return c.HTML(http.StatusOK, "")
+	clearDB()
+	return forLoopTest(make([]item, 0)).Render(context.Background(), c.Response().Writer)
 }
 
 func hand5(c echo.Context) error {
@@ -152,16 +171,10 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Static("/assets", "assets")
 
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			cc := &CustomContext{c}
-			return next(cc)
-		}
-	})
+	currDate.setDate(isTheDayRight().Format("2006-01-02"))
 
 	e.GET("/", hand1)
 	e.GET("/date-picker", hand5)
-	e.GET("/get-items", hand4)
 	e.POST("/new-item", hand2)
 	e.DELETE("/", hand3)
 	e.Logger.Fatal(e.Start(":1323"))
