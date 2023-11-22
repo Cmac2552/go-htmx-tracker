@@ -20,6 +20,11 @@ type item struct {
 	date      string
 }
 
+type items struct {
+	date  string
+	items []item
+}
+
 type CurrentDate struct {
 	currentDate string
 	lock        sync.Mutex
@@ -57,29 +62,33 @@ func putIntoDB(thingType string, count string, date string) {
 	db.Exec("INSERT INTO table1 (type, count, date) VALUES (?, ?, ?)", thingType, count_int, date)
 }
 
-func pullFromDB(date string) []item {
+func pullFromDB(dates []string) []items {
 	db, err := sql.Open("sqlite", "./DB1.db")
 	if err != nil {
 		fmt.Println(err)
 	}
 	defer db.Close()
+	dayContainer := make([]items, len(dates))
+	for i := 0; i < len(dates); i++ {
 
-	result, err := db.Query("SELECT * FROM table1 WHERE date = ?", date)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	var thingContainer []item
-	for result.Next() {
-		var thing item
-		err := result.Scan(&thing.id, &thing.thingType, &thing.count, &thing.date)
+		result, err := db.Query("SELECT * FROM table1 WHERE date = ?", dates[i])
 		if err != nil {
 			fmt.Println(err)
 		}
-		thingContainer = append(thingContainer, thing)
+
+		for result.Next() {
+			var thing item
+			err := result.Scan(&thing.id, &thing.thingType, &thing.count, &thing.date)
+			if err != nil {
+				fmt.Println(err)
+			}
+			dayContainer[i].items = append(dayContainer[i].items, thing)
+		}
+		dayContainer[i].date = dates[i]
+		result.Close()
 	}
 
-	return thingContainer
+	return dayContainer
 }
 
 func clearDB() {
@@ -139,20 +148,36 @@ func dateHelper(dateToFormat string) string {
 	return convertedTime.Format("January 2 2006")
 }
 
+func getLastDays(firstDay string, numDays int) []string {
+	days := make([]string, numDays)
+	parsedTime, err := time.Parse("2006-01-02", firstDay)
+	if err != nil {
+		fmt.Println(err)
+	}
+	for i := 0; i < numDays; i++ {
+		days[i] = parsedTime.AddDate(0, 0, i*-1).Format("2006-01-02")
+	}
+	return days
+}
+
 func hand1(c echo.Context) error {
 
 	if c.QueryParam("date") != "" {
 		currDate.setDate(c.QueryParam("date"))
 	}
-	items := pullFromDB(currDate.getDate())
+
+	items := pullFromDB(getLastDays(currDate.getDate(), 5))
+	fmt.Println(items)
 	return indexPage(items, dateHelper(currDate.getDate())).Render(context.Background(), c.Response().Writer)
 }
 
 func hand2(c echo.Context) error {
 
 	putIntoDB(c.FormValue("type"), c.FormValue("count"), currDate.getDate())
-	items := pullFromDB(currDate.getDate())
-	return forLoopTest(items).Render(context.Background(), c.Response().Writer)
+
+	items := pullFromDB([]string{currDate.getDate()})
+	return forLoopTest(items[0].items).Render(context.Background(), c.Response().Writer)
+
 }
 
 func hand3(c echo.Context) error {

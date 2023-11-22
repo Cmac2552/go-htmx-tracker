@@ -81,6 +81,21 @@ css dateInput() {
 	margin-bottom: 2.95rem;
 }
 
+css pageContainer() {
+	display: flex;
+}
+
+css mainContent() {
+	flex-grow: 1;
+}
+
+css sidebarItem() {
+	display: flex;
+	border-style: solid;
+	flex-direction: column;
+	min-height: 150px;
+}
+
 templ forLoopTest(rowsPulledOut []item) {
 	<div id="whole_thing">
 		<form hx-post="/new-item" hx-target="#whole_thing" hx-include="[name=&#39;date&#39;]" class={ infoForm() }>
@@ -99,7 +114,7 @@ templ forLoopTest(rowsPulledOut []item) {
 	</div>
 }
 
-templ indexPage(rowsPulledOut []item, day string) {
+templ indexPage(rowsPulledOut []items, day string) {
 	<html>
 		<head>
 			<meta charset="UTF-8"/>
@@ -107,10 +122,15 @@ templ indexPage(rowsPulledOut []item, day string) {
 			<script src="/assets/js/htmx.min.js"></script>
 		</head>
 		<body>
-			<div id="page">
-				@header(day)
-				@forLoopTest(rowsPulledOut)
-				<button hx-delete="/" hx-target="#whole_thing">DELETE</button>
+			<div class={ pageContainer() } id="page">
+				<div class={ mainContent() }>
+					@header(day)
+					@forLoopTest(rowsPulledOut[0].items)
+					<button hx-delete="/" hx-target="#whole_thing">DELETE</button>
+				</div>
+				<div>
+					@sidebar(rowsPulledOut)
+				</div>
 			</div>
 		</body>
 	</html>
@@ -128,4 +148,15 @@ templ header(day string) {
 		<h1 class={ dayClass() }>{ day } </h1>
 		<button class={ dateButton() } hx-trigger="click" hx-get="/date-picker" hx-swap="outerHTML"><i class="material-icons">calendar_month</i> </button>
 	</div>
+}
+
+templ sidebar(items []items) {
+	for i :=0; i < len(items); i++ {
+		<div class={ sidebarItem() }>
+			{ items[i].date }
+			for j :=0; j < len(items[i].items); j++ {
+				<div>{ items[i].items[j].thingType } { items[i].items[j].count } </div>
+			}
+		</div>
+	}
 }
